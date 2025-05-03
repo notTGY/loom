@@ -244,9 +244,9 @@ export default function App() {
       <div className="relative overflow-hidden">
         <canvas style={{transform: transformScale}} ref={canvasRef} className=" transition-all duration-2000 ease-[cubic-bezier(0.060,0.975,0.195,0.985)] max-w-full max-h-full" />
         {/*
-        <div style={{transform}} className="absolute top-0 left-0 border border-red-300">
+        <div style={{transform}} className="absolute top-0 left-0">
           <div className="absolute">
-            <div style={boxStyle} className="border absolute"/>
+            <div style={boxStyle} className=" border border-red-300 absolute"/>
           </div>
         </div>
         */}
