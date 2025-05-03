@@ -232,13 +232,6 @@ export default function App() {
     </div>
   )
 
-  useEffect(() => {
-    setTimeout(() => {
-      toggleStream()
-    }, 5000)
-  }, [])
-
-
   return (
     <div className="flex flex-col">
       <video
