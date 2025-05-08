@@ -13,41 +13,43 @@ export default function App() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const [isStreaming, setIsStreaming] = useState(false)
-  const [devices, setDevices] = useState([])
-  const [selectedDevice, setSelectedDevice] = useState("")
+  const [isAiReady, setIsAiReady] = useState(false)
+  const [isRunningAi, setIsRunningAi] = useState(false)
+  const [mediaStream, setMediaStream] = useState(null)
   const animationRef = useRef(null)
 
 
   useEffect(() => {
-    async function getDevices() {
+    async function getMediaStream() {
       try {
+        const ms = await navigator.mediaDevices.getUserMedia({ video: true })
+        setMediaStream(ms)
+        /*
+
         const devices = await navigator.mediaDevices.enumerateDevices()
         const videoDevices = devices.filter((device) => device.kind === "videoinput")
         setDevices(videoDevices)
         if (videoDevices.length > 0) {
           setSelectedDevice(videoDevices[0].deviceId)
         }
+        */
       } catch (err) {
         console.error("Error accessing media devices:", err)
       }
     }
 
-    getDevices()
+    getMediaStream()
   }, [])
 
   const startStream = async () => {
-    if (!selectedDevice) return
+    if (!mediaStream) return
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: selectedDevice ? { exact: selectedDevice } : undefined },
-      })
-
       if (videoRef.current) {
-        videoRef.current.srcObject = stream
+        videoRef.current.srcObject = mediaStream
         videoRef.current.play()
-        setIsStreaming(true)
         renderCanvas()
+        setIsStreaming(true)
       }
     } catch (err) {
       console.error("Error accessing the camera:", err)
@@ -127,8 +129,9 @@ export default function App() {
           setBox(person.box)
           break
         case 'ready':
-          runAi()
-          setBox({xmin: 0, ymin: 0, xmax: 640, ymax: 480})
+          setIsAiReady(true)
+          //runAi()
+          //setBox({xmin: 0, ymin: 0, xmax: 640, ymax: 480})
       }
     }
     worker.current.addEventListener('message', onMessageReceived)
@@ -151,6 +154,8 @@ export default function App() {
     const y = box.ymin
     const w = box.xmax-box.xmin
     const h = box.ymax-box.ymin
+    const centerX = (box.xmin + box.xmax) / 2
+    const centerY = (box.ymin + box.ymax) / 2
 
     boxStyle.display = 'block'
     boxStyle.width = w
@@ -161,16 +166,14 @@ export default function App() {
     if (videoRef.current) {
       const vh = videoRef.current.videoHeight
       const vw = videoRef.current.videoWidth
+      const squaredw = (vw-vh)/2
       const scale = Math.min(vw/w, vh/h)
 
-      const dh = (scale-1)*vh
-      const dw = (scale-1)*vw
+      const dh = (scale-1.01)*vh
+      const dw = (scale-1.01)*vw
 
-      const centerX = x+w/2
-      const centerY = y+h/2
-
-      const dx = vw/2 - centerX
-      const dy = vh/2 - centerY
+      const dx = vw/2 - centerX + dw/2 - squaredw
+      const dy = vh/2 - centerY + dh/2
 
       let tx = dx
       if (dx > 0) {
@@ -191,24 +194,22 @@ export default function App() {
     }
   }
 
+  const aiControls = (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex items-end space-x-2 h-full">
+
+        <Button size="sm" onClick={() => {
+          runAi()
+          setIsRunningAi(true)
+        }} disabled={!isAiReady}>
+          Run AI
+        </Button>
+      </div>
+    </div>
+  )
+
   const controls = (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="camera-select">Camera Source</Label>
-        <Select value={selectedDevice} onValueChange={setSelectedDevice} disabled={isStreaming}>
-          <SelectTrigger id="camera-select">
-            <SelectValue placeholder="Select camera" />
-          </SelectTrigger>
-          <SelectContent>
-            {devices.map((device) => (
-              <SelectItem key={device.deviceId} value={device.deviceId}>
-                {device.label || `Camera ${devices.indexOf(device) + 1}`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="flex items-end space-x-2 h-full">
         <Button
           variant="outline"
@@ -216,7 +217,7 @@ export default function App() {
           onClick={() => {
             navigator.mediaDevices.enumerateDevices().then((devices) => {
               const videoDevices = devices.filter((device) => device.kind === "videoinput")
-              setDevices(videoDevices)
+              //setDevices(videoDevices)
             })
           }}
           disabled={isStreaming}
@@ -241,8 +242,8 @@ export default function App() {
         playsInline
       />
 
-      <div className="relative overflow-hidden">
-        <canvas style={{transform: transformScale}} ref={canvasRef} className=" transition-all duration-2000 ease-[cubic-bezier(0.060,0.975,0.195,0.985)] max-w-full max-h-full" />
+      <div className="relative overflow-hidden aspect-square w-96 flex justify-center">
+        <canvas style={{transform: transformScale}} ref={canvasRef} className=" transition-all duration-2000 ease-[cubic-bezier(0.060,0.975,0.195,0.985)] h-full bg-green-300" />
         {/*
         <div style={{transform}} className="absolute top-0 left-0">
           <div className="absolute">
@@ -251,13 +252,17 @@ export default function App() {
         </div>
         */}
         {!isStreaming && (
-          <div className="absolute inset-0 flex items-center justify-center text-white">
+          <div className="absolute inset-0 flex items-center justify-center">
             <p>Camera is not active</p>
           </div>
         )}
       </div>
 
-      {isStreaming ? null : controls}
+      {isStreaming
+        ? isRunningAi
+        ? null
+        : aiControls
+        : controls}
 
 
 
