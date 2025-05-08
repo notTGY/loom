@@ -166,27 +166,16 @@ export default function App() {
     if (videoRef.current) {
       const vh = videoRef.current.videoHeight
       const vw = videoRef.current.videoWidth
-      const squaredw = (vw-vh)/2
       const scale = Math.min(vw/w, vh/h)
 
-      const dh = (scale-1.01)*vh
-      const dw = (scale-1.01)*vw
+      const dh = (scale-1)*vh
+      const dw = (scale-1)*vw
 
-      const dx = vw/2 - centerX + dw/2 - squaredw
-      const dy = vh/2 - centerY + dh/2
+      const dx = vw/2 - centerX
+      const dy = vh/2 - centerY
 
-      let tx = dx
-      if (dx > 0) {
-        tx = Math.min(dx, dw)
-      } else {
-        tx = Math.max(dx, -dw)
-      }
-      let ty = dy
-      if (dy > 0) {
-        ty = Math.min(dy, dh)
-      } else {
-        ty = Math.max(dy, -dh)
-      }
+      const tx = dx * Math.sqrt(Math.min(dx*dx, dw*dw)/(dx*dx))
+      const ty = dy * Math.sqrt(Math.min(dy*dy, dh*dh)/(dy*dy))
 
 
       transform = `translate(${tx}px, ${ty}px)`

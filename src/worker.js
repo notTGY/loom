@@ -7,7 +7,6 @@ pipeline(
   'Xenova/detr-resnet-50',
   {
     dtype: 'fp16',
-    device: 'wasm',
   },
 ).then((d) => {
   detector = d
